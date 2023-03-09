@@ -1,0 +1,6 @@
+[submodule "pytorch_6dof-graspnet"]
+	path = pytorch_6dof-graspnet
+	url = https://github.com/tasbolat1/pytorch_6dof-graspnet.git
+[submodule "franka_analytical_ik"]
+	path = franka_analytical_ik
+	url = https://github.com/tasbolat1/franka_analytical_ik.git
