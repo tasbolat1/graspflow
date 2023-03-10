@@ -1,0 +1,21 @@
+0:
+  npoint: 128
+  radius: 0.02
+  nsample: 64
+  in_channel: 4
+  mlp:  [5,16,64,64]
+  group_all:  False
+1:
+  npoint: 32
+  radius: 0.01
+  nsample: 128
+  in_channel: 64
+  mlp:  [64,64,128,128]
+  group_all:  False
+2:
+  npoint: 32
+  radius: None
+  nsample: None
+  in_channel: 128
+  mlp:  [128,128,256,256]
+  group_all:  True

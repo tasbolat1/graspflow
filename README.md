@@ -10,7 +10,9 @@ human handover improved the functional aspect of the grasp by up to 33%.
 <!-- <img src="figs/mainfig-1.png" alt="main" width="600" height="300"> -->
 <img align="center" alt="GraspFlow" src="figs/mainfig-1.png" width="710" height="435" />
 
-## Grasp Generation
+## Section 1: Dataset for Stability Classifier
+
+TODO by Zhang Heng and Patrick Eala
 
 ## Section 2: GraspNet from NVidia
 
@@ -21,6 +23,21 @@ We use Pytorch version [2] of the Graspnet [1].
 
 ### Installation
 We mainly follow same installation as in [2]. However, we also extended it to add additional filtering capabilites. Please install IK submodule and copy generated library to pytorch_6dof-graspnet module. Details are given in [this link](https://github.com/tasbolat1/franka_analytical_ik.git).
+
+
+## Section 3: Grasp Refinement via GraspFlow
+
+### Prerequisits
+
+### Usage
+
+## BibTeX
+
+To cite this work, please use:
+
+```
+TODO
+```
 
 ## Reference List
 [1]. Mousavian, Arsalan, Clemens Eppner, and Dieter Fox. "6-dof graspnet: Variational grasp generation for object manipulation." Proceedings of the IEEE/CVF International Conference on Computer Vision. 2019. [Original GitHub repo](https://github.com/NVlabs/6dof-graspnet.git)

@@ -6,4 +6,9 @@ experiments/composites/*
 experiments/pointclouds/*
 experiments/test/*
 
-###
+### GraspFlow ###
+graspflow/temp_data/
+graspflow/networks/__pycache__/
+graspflow/__pycache__/
+graspflow/robot_panda.pdf
+graspflow/robot_robotiq.pdf
