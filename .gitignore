@@ -1,1 +1,9 @@
 # these files are ignored
+
+#### Experiment folder ####
+# Dowload these files from google drive
+experiments/composites/*
+experiments/pointclouds/*
+experiments/test/*
+
+###

@@ -4,3 +4,6 @@
 [submodule "franka_analytical_ik"]
 	path = franka_analytical_ik
 	url = https://github.com/tasbolat1/franka_analytical_ik.git
+[submodule "Pointnet2_PyTorch"]
+	path = Pointnet2_PyTorch
+	url = https://github.com/erikwijmans/Pointnet2_PyTorch.git

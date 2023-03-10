@@ -1,0 +1,1 @@
+This folder serves to keep generated grasp samples.
