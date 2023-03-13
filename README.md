@@ -55,7 +55,7 @@ We use Pytorch version [2] of the Graspnet [1].
 ### Installation
 We mainly follow same installation as in [2]. However, we also extended it to add additional filtering capabilites. Please install IK submodule and copy generated library to pytorch_6dof-graspnet module. Details are given in [this link](https://github.com/tasbolat1/franka_analytical_ik.git).
 
-*Note:* Generally any grasp sampler can be used. In our paper, we have also tested on [GPD sampler](https://github.com/tasbolat1/gpd.git).
+*Note:* Generally any grasp sampler can be used. In our paper, we have also tested on [GPD sampler](https://github.com/tasbolat1/gpd.git) [5].
 
 
 ## Section 3: Grasp Refinement via GraspFlow
@@ -93,3 +93,5 @@ TODO
 [3]. He, Yanhao, and Steven Liu. "Analytical inverse kinematics for franka emika panda–a geometrical solver for 7-dof manipulators with unconventional design." 2021 9th International Conference on Control, Mechatronics and Automation (ICCMA). IEEE, 2021. [Original GitHub repo](https://github.com/ffall007/franka_analytical_ik.git)
 
 [4]. Sutanto, Giovanni, et al. "Encoding physical constraints in differentiable newton-euler algorithm." Learning for Dynamics and Control. PMLR, 2020.
+
+[5]. Ten Pas, Andreas, et al. "Grasp pose detection in point clouds." The International Journal of Robotics Research 36.13-14 (2017): 1455-1473.
