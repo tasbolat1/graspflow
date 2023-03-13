@@ -10,6 +10,8 @@ human handover improved the functional aspect of the grasp by up to 33%.
 <!-- <img src="figs/mainfig-1.png" alt="main" width="600" height="300"> -->
 <img align="center" alt="GraspFlow" src="figs/mainfig-1.png" width="710" height="435" />
 
+This project has a lot of submodules. We recommend to use forked versions of submodules given in this repository. 
+
 ## Section 1: Stability Classifier: Dataset and Training
 
 The core of the dataset generation lies in  Grasper library. The grasper library can be downloaded at:
@@ -24,10 +26,15 @@ In order to generate specific grasps per category, please use the following code
 TODO Zhang
 ```
 
-Or, you can just download the dataset from google drive:
+Or, you can just download the dataset from [google drive](https://drive.google.com/drive/folders/1inXxyXslszR9PW44TQY7v08xZZUiMExS?usp=sharing). After downloading, unzip under graspflow folder. The directory tree must look like as following:
 
 ```
-TODO Tas
+ - graspflow
+    - graspflow
+        - data
+            - grasps_lower
+            - grasps_tight_lower
+            - pcs
 ```
 
 To train Stability Classifier, please download the dataset, please run the following command:
@@ -47,6 +54,8 @@ We use Pytorch version [2] of the Graspnet [1].
 
 ### Installation
 We mainly follow same installation as in [2]. However, we also extended it to add additional filtering capabilites. Please install IK submodule and copy generated library to pytorch_6dof-graspnet module. Details are given in [this link](https://github.com/tasbolat1/franka_analytical_ik.git).
+
+*Note:* Generally any grasp sampler can be used. In our paper, we have also tested on [GPD sampler](https://github.com/tasbolat1/gpd.git).
 
 
 ## Section 3: Grasp Refinement via GraspFlow
