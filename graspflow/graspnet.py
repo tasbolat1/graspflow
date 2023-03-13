@@ -48,6 +48,8 @@ class GraspNet():
         # trans: [B,3]
         # pc: [B, 1024, 3] - normalized
 
+        self.info = InfoHolder()
+
 
         if self.args.rot_reps == 'euler':
             rots = quaternions2eulers(quaternions)
@@ -56,8 +58,9 @@ class GraspNet():
         else:
             rots = utils.quat_to_A_vec(quaternions)
 
-        split_size = int(self.args.n/(self.batch_size+1))+1
-        split_indcs = np.array_split(np.arange(self.args.n), split_size)
+        n = translations.shape[0]
+        split_size = int(n/(self.batch_size+1))+1
+        split_indcs = np.array_split(np.arange(n), split_size)
         #print(split_indcs)
         # refine by batch
 
@@ -142,6 +145,8 @@ class GraspNet():
         # trans: [B,3]
         # pc: [B, 1024, 3] - normalized
 
+        self.info = InfoHolder()
+
         if self.args.rot_reps == 'euler':
             rots = quaternions2eulers(quaternions)
         elif self.args.rot_reps == 'quaternion':
@@ -149,8 +154,9 @@ class GraspNet():
         else:
             rots = utils.quat_to_A_vec(quaternions)
 
-        split_size = int(self.args.n/(self.batch_size+1))+1
-        split_indcs = np.array_split(np.arange(self.args.n), split_size)
+        n = translations.shape[0]
+        split_size = int(n/(self.batch_size+1))+1
+        split_indcs = np.array_split(np.arange(n), split_size)
         #print(split_indcs)
         # refine by batch
 
@@ -229,6 +235,7 @@ class GraspNet():
         # quats: [B, 4]
         # trans: [B,3]
         # pc: [B, 1024, 3] - normalized
+        
 
         if self.args.rot_reps == 'euler':
             rots = quaternions2eulers(quaternions)
@@ -237,8 +244,9 @@ class GraspNet():
         else:
             rots = utils.quat_to_A_vec(quaternions)
 
-        split_size = int(self.args.n/(self.batch_size+1))+1
-        split_indcs = np.array_split(np.arange(self.args.n), split_size)
+        n = translations.shape[0]
+        split_size = int(n/(self.batch_size+1))+1
+        split_indcs = np.array_split(np.arange(n), split_size)
         #print(split_indcs)
         # refine by batch
 
@@ -279,6 +287,8 @@ class GraspNet():
         # trans: [B,3]
         # pc: [B, 1024, 3] - normalized
 
+        self.info = InfoHolder()
+
         if self.args.rot_reps == 'euler':
             rots = quaternions2eulers(quaternions)
         elif self.args.rot_reps == 'quaternion':
@@ -286,8 +296,9 @@ class GraspNet():
         else:
             rots = utils.quat_to_A_vec(quaternions)
 
-        split_size = int(self.args.n/(self.batch_size+1))+1
-        split_indcs = np.array_split(np.arange(self.args.n), split_size)
+        n = translations.shape[0]
+        split_size = int(n/(self.batch_size+1))+1
+        split_indcs = np.array_split(np.arange(n), split_size)
         #print(split_indcs)
         # refine by batch
 
@@ -433,19 +444,10 @@ class GraspNet():
 
     def load_evaluator(self, path_to_model):
         model = GraspEvaluator()
-        model.load_state_dict(torch.load(f'saved_models/evaluator/164711189287/62.pt'))
+        model.load_state_dict(torch.load(path_to_model))
         model = model.to(self.device)
         self.evaluator = model.eval()
 
-    def load_corrector(self, path_to_model, type='NN'):
-        if type=='NN':
-            model = NNCorrector()
-            model.load_state_dict(torch.load(path_to_model))
-            # model.load_state_dict(torch.load(f'saved_models/evaluator/164711189287/62.pt'))
-            model = model.to(self.device)
-            self.corrector = model.eval()
-        elif type=='GP':
-            pass
 
     def _velocity(self, rots, translations, pc, Nq=1, Np=1):
         # eulers [B,3]

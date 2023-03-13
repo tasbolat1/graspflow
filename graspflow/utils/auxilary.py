@@ -1,6 +1,4 @@
 import json
-from secrets import choice
-from tkinter import E
 import trimesh
 from scipy.spatial.transform import Rotation as R
 import numpy as np
@@ -10,78 +8,136 @@ import trimesh.transformations as tra
 from pathlib import Path
 from tqdm import tqdm
 
-
 class InfoHolder():
-    def __init__(self, var_names=[]):
-        '''
-        Holds all necessary information to debug the refinement methods. must be used alongside with args.
-        '''
-
-        self.var_names = var_names
-        self.exec_time = 0
-
-        # register new variables in data holder
-        self.data = {} 
-        for name in self.var_names:
-            self.data[name]=[]
-
-    def batch_init(self):
-        self.data_batch = {}
-        for name in self.var_names:
-            self.data_batch[name]=[]
-
-    def batch_update(self, **kwargs):
-        for var in kwargs:
-            if torch.is_tensor(kwargs[var]):
-                self.data_batch[var].append(kwargs[var].detach().cpu().numpy().copy())
-            else:
-                self.data_batch[var].append(kwargs[var])
+    def __init__(self):
+        # global_variables
+        self.rots = []
+        self.translations = []
+        self.rots_grad = []
+        self.translations_grad = []
+        self.success = []
+        self.time = 0
+        self.quaternions = []
+        self.filter_mask = []
 
     def update(self):
-        for var in self.data.keys():
-            self.data[var].append(np.stack(self.data_batch[var]))
+        self.rots.append(np.stack(self.batch_rots))
+        self.translations.append(np.stack(self.batch_translations))
+        if len(self.batch_rots_grad) != 0:
+            self.rots_grad.append(np.stack(self.batch_rots_grad))
+            self.translations_grad.append(np.stack(self.batch_translations_grad))
+        self.success.append(np.stack(self.batch_success))
+        self.quaternions.append(np.stack(self.batch_quats))
+        self.filter_mask.append(np.stack(self.batch_filter_mask))
+
+    def batch_init(self):
+        # batch_variables
+        self.batch_rots = []
+        self.batch_translations = []
+        self.batch_translations_grad = []
+        self.batch_rots_grad = []
+        self.batch_success = []
+        self.batch_quats = []
+        self.batch_filter_mask = []
+
+    def batch_update(self, _rots, _rots_grad, _translations, _translations_grad, success, filter_mask, rot_reps='euler'):
+        # record batch info
+
+        if isinstance(_rots, torch.Tensor):
+            if rot_reps == 'euler':
+                self.batch_quats.append(eulers2quaternions(_rots.detach().cpu().numpy()))
+            elif rot_reps == 'quaternion':
+                _rots = torch.nn.functional.normalize(_rots, p=2) # normalize
+                self.batch_quats.append(_rots.detach().cpu().numpy())
+            else:
+                #self.batch_quats.append(utils.A_vec_to_quat(_rots).detach().cpu().numpy())
+                ValueError('Not Implemented!')
+
+            if _rots is not None:
+                self.batch_rots.append(_rots.detach().cpu().numpy())
+            if _rots_grad is not None:
+                self.batch_rots_grad.append(_rots_grad.detach().cpu().numpy())
+            if _translations is not None:
+                self.batch_translations.append(_translations.detach().cpu().numpy())
+            if _translations_grad is not None:
+                self.batch_translations_grad.append(_translations_grad.detach().cpu().numpy())
+            if success is not None:
+                self.batch_success.append(success.detach().cpu().numpy())
+            if filter_mask is not None:
+                self.batch_filter_mask.append(filter_mask.detach().cpu().numpy())
+        else:
+            raise ValueError('Not implemented for numpy input.')
 
     def conclude(self, exec_time):
+        self.rots = np.concatenate(self.rots, axis=1)
+        self.translations = np.concatenate(self.translations, axis=1)
+        if len(self.rots_grad) != 0:
+            self.rots_grad = np.concatenate(self.rots_grad, axis=1)
+            self.translations_grad = np.concatenate(self.translations_grad, axis=1)
+        self.success = np.concatenate(self.success, axis=1).squeeze(-1)
+        self.filter_mask = np.concatenate(self.filter_mask, axis=1)
+        self.time = exec_time
+        self.quaternions = np.concatenate(self.quaternions, axis=1)
 
-        for var in self.data.keys():
-            self.data[var] = np.concatenate(self.data[var], axis=1)
+    def get_refined_grasp(self):
+        # retrieve last grasp from [seq, B, :]
+        return self.quaternions[-1, ...], self.translations[-1,...], self.success[-1, ...]
 
-        self.exec_time = exec_time
+    def compute_init_success(self, filtered=True):
+        if filtered:
+            mask = self.filter_mask[0] == 1
+            return np.mean(self.success[0][mask])
+        return np.mean(self.success[0])
 
-        self.batch_init()
+    def compute_final_success(self, filtered=True):
+        if filtered:
+            mask = self.filter_mask[-1] == 1
+            return np.mean(self.success[-1][mask])
+        return np.mean(self.success[0])
 
-    def clear(self):
-        self.__init__()
-        self.var_names = []
-        self.exec_time = 0
-        self.batch_init()
+    def draw_trajectory(self, ax, idx=None):
+        pass
 
-    def save(self, save_dir=None):
-        np.savez(save_dir, exec_time=self.exec_time, **self.data)
+    def plot_euler_gradients(self, ax, idx=None):
+        # repr [seq, B, :]
 
-    def load(self, file_dir=None):
-        '''
-        Overrides all values
-        '''
+        if idx == 'all':
+            ax.plot(self.rots_grad[:, :, 0], '-', label='alpha')
+            ax.plot(self.rots_grad[:, :, 1], '--', label='beta')
+            ax.plot(self.rots_grad[:, :, 2], '-.-', label='gamma')
+        else:
+            ax.plot(self.rots_grad[:, idx, 0], '-', label='alpha')
+            ax.plot(self.rots_grad[:, idx, 1], '--', label='beta')
+            ax.plot(self.rots_grad[:, idx, 2], '-.', label='gamma')
+
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys())
+
+
+    def plot_trans_gradients(self, ax, idx=None):
+        # repr [seq, B, :]
+
+        if idx == 'all':
+            ax.plot(self.translations_grad[:, :, 0], '-', label='x')
+            ax.plot(self.translations_grad[:, :, 1], '--', label='y')
+            ax.plot(self.translations_grad[:, :, 2], '-.-', label='z')
+        else:
+            ax.plot(self.translations_grad[:, idx, 0], '-', label='x')
+            ax.plot(self.translations_grad[:, idx, 1], '--', label='y')
+            ax.plot(self.translations_grad[:, idx, 2], '-.', label='z')
+
+        handles, labels = ax.get_legend_handles_labels() #plt.gca()
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys())
         
-        self.clear()
-        
-        data=dict(np.load(file_dir))
-        self.exec_time = data.pop('exec_time', None)
-        self.data = data
 
-        # initialize variables
-        for name in self.data.keys():
-            self.var_names.append(name)
-
-        self.batch_init()
-
-def get_object_mesh(category, idx):
+def get_object_mesh(category, i):
     extension = 'obj'
     if category in ['box', 'cylinder']:
         extension = 'stl'
-    obj_filename = f'../grasper/grasp_data/meshes/{category}/{category}{idx:03}.{extension}'
-    metadata_filename = f'../grasper/grasp_data/info/{category}/{category}{idx:03}.json'
+    obj_filename = f'../grasper/grasp_data/meshes/{category}/{category}{i:03}.{extension}'
+    metadata_filename = f'../grasper/grasp_data/info/{category}/{category}{i:03}.json'
     metadata = json.load(open(metadata_filename,'r'))
     mesh = trimesh.load(obj_filename)
     mesh.apply_scale(metadata['scale'])
@@ -126,24 +182,20 @@ def sample_grasps(N=10, label_type=0 , dataset=None):
     return quats, trans, labels, pc
 
 
-def quaternions2eulers(quaternions, seq='XYZ'):
+def quaternions2eulers(quaternions, seq='xyz'):
     '''
     quaternions: [B,4] (torch tensor)
-    NO BACKWARD!
+    NO BACWARD!
     '''
     r = R.from_quat(quaternions.cpu().numpy())
     eulers = torch.FloatTensor(r.as_euler(seq=seq).copy()).to(quaternions.device)
     return eulers
 
-def eulers2quaternions(eulers, seq='XYZ'):
+def eulers2quaternions(eulers, seq='xyz'):
     '''
     eulers: [N,B,3] or [B,3] (numpy)
-    NO BACKWARD!
+    NO BACWARD!
     '''
-
-    if isinstance(eulers, torch.Tensor):
-        eulers=eulers.detach().cpu().numpy()
-
     if len(eulers.shape) == 2:
         r = R.from_euler(angles = eulers, seq=seq)
         quaternions = r.as_quat()
@@ -255,43 +307,3 @@ class PandaGripper(object):
         if all:
             return trimesh.util.concatenate(self.get_meshes()).bounding_box
         return trimesh.util.concatenate(self.get_meshes())
-
-def tensor_nans_like(x):
-    return torch.ones_like(x)*torch.tensor(float('nan'))
-    
-
-def add_base_options(parser):
-    parser.add_argument("--max_iterations", type=int, help="Maximum iterations to refine samples.", default=10)
-    parser.add_argument("--batch_size", type=int, help="Batch size.", default=64)
-    parser.add_argument("--method", type=str, choices=['GraspFlow', 'graspnet', 'metropolis', 'GraspOpt', 'GraspOptES'], help="Method for refinement.", default='GraspFlow')
-    parser.add_argument("--sampler", type=str, help="Sampling methods.", choices=['graspnet', 'gpd'], default='graspnet')
-    
-    parser.add_argument("--device", type=int, help="device index. Pass -1 for cpu.", default=-1)
-    parser.add_argument("--seed", type=int, help="Seed for randomness.", default=40)
-    parser.add_argument("--grasp_space", type=str, help="Space in which grasp update happens.", choices=["SO3", "Euler", "Theta"], default="SO3")
-    # parser.add_argument('--include_robot', action='store_true', help='If set, includes E classifier. Only works with grasp_space Theta', default=False)
-    # parser.add_argument('--no-include_robot', dest='include_robot', action='store_false')
-    # parser.set_defaults(include_robot=False)
-    # parser.add_argument('--include_robot', type=int, help='If set, includes E classifier. Only works with grasp_space Theta', default=0)
-
-    parser.add_argument('--classifier', type=str, help='Set of classifiers to refife', default=0)
-
-    # SO3 and Euler
-    # parser.add_argument("--noise_e", type=float, help="Noise factor for GraspFlow.", default=0.000000)
-    # parser.add_argument("--noise_t", type=float, help="Noise factor for DFflow.", default=0.000000)
-    # parser.add_argument("--eta_t", type=float, help="Refiement rate for DFflow.", default=0.000025)
-    # parser.add_argument("--eta_e", type=float, help="Refiement rate for DFflow.", default=0.000025)
-
-    # parser.add_argument("--eta_table_t", type=float, help="Refiement rate for DFflow.", default=0.000025)
-    # parser.add_argument("--eta_table_e", type=float, help="Refiement rate for DFflow.", default=0.000025)
-
-    # Theta
-    # parser.add_argument("--eta_theta_s", type=float, help="Refinement rate for S classifier for Theta grasp space.", default=0.000025)
-    # parser.add_argument("--eta_theta_e", type=float, help="Refiement rate for E classifier for Theta grasp space.", default=0.000025)
-    # parser.add_argument("--noise_theta", type=float, help="Noise factor for DFflow with Theta grasp space.", default=0.000001)
-
-    # Robot
-    # parser.add_argument("--robot_threshold", type=float, help="MI score threshold.", default=0.01)
-    # parser.add_argument("--robot_coeff", type=float, help="MI score coef.", default=10000)
-
-    return parser

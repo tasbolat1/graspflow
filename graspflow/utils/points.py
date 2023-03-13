@@ -5,7 +5,6 @@ import numpy as np
 import trimesh
 from scipy.spatial.transform import Rotation as R
 import trimesh.transformations as tra
-import torch
 
 def farthest_points(data,
                     nclusters,
@@ -80,6 +79,7 @@ def distance_by_translation_point(p1, p2):
     """
     return np.sqrt(np.sum(np.square(p1 - p2), axis=-1))
 
+
 def regularize_pc_point_count(pc, npoints, use_farthest_point=False):
     """
       If point cloud pc has less points than npoints, it oversamples.
@@ -103,28 +103,6 @@ def regularize_pc_point_count(pc, npoints, use_farthest_point=False):
         if required > 0:
             index = np.random.choice(range(pc.shape[0]), size=required)
             pc = np.concatenate((pc, pc[index, :]), axis=0)
-    return pc
-
-def regularize_pc_point_count_torch(pc, npoints):
-    """
-      If point cloud pc has less points than npoints, it oversamples.
-      Otherwise, it downsample the input pc to have npoint points.
-      use_farthest_point: indicates whether to use farthest point sampling
-      to downsample the points. Farthest point sampling version runs slower.
-
-      Uses pytorch, pass it as batch
-    """
-    if pc.shape[1] > npoints:
-        center_indexes = np.random.choice(range(pc.shape[1]),
-                                              size=npoints,
-                                              replace=False)
-        pc = pc[:, center_indexes, :]
-    else:
-        required = npoints - pc.shape[1]
-
-        if required > 0:
-            index = np.random.choice(range(pc.shape[1]), size=required)
-            pc = torch.cat((pc, pc[:,index, :]), dim=1)
     return pc
 
 

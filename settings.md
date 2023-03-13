@@ -5,6 +5,7 @@
 GraspFlow mainly tackles single item in the environment.
 
  - E_TYPE: single
+ - M_TYPE: GraspFlow, graspnet, metropolis
  - (cat, idx): 
     - (box,14)
     - (box,17)
@@ -18,5 +19,12 @@ GraspFlow mainly tackles single item in the environment.
     - (bowl,16)
     - (cylinder,2)
     - (cylinder,11)
-
-
+    - (fork, 1)
+    - (fork, 11)
+    - (hammer, 15)
+    - (pan, 3)
+    - (pan, 6)
+    - (scissor, 4)
+    - (scissor, 7)
+    - (spatula, 1)
+    - (spatula, 14)

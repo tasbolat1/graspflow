@@ -98,42 +98,20 @@ def transform_gripper_pc_old(quat, trans, config_path = 'configs/panda.npy'):
     # q: (x,y,z, w)
     # t: (x,y,z)
     
-    # # upload gripper_pc
-    # control_points = np.load(config_path)[:, :3]
-    # # control_points = [[0, 0, 0], [0, 0, 0], control_points[0, :],
-    # #                   control_points[1, :], control_points[-2, :],
-    # #                   control_points[-1, :]]
-    # mid_point = control_points[0, :]*0.5 + control_points[1, :]*0.5
-    # control_points = [[0, 0, 0], mid_point, control_points[0, :],
+    # upload gripper_pc
+    control_points = np.load(config_path)[:, :3]
+    # control_points = [[0, 0, 0], [0, 0, 0], control_points[0, :],
     #                   control_points[1, :], control_points[-2, :],
     #                   control_points[-1, :]]
-    # control_points = np.asarray(control_points, dtype=np.float32)
-    # control_points = np.tile(np.expand_dims(control_points, 0),
-    #                          [quat.shape[0], 1, 1])
+    mid_point = control_points[0, :]*0.5 + control_points[1, :]*0.5
+    control_points = [[0, 0, 0], mid_point, control_points[0, :],
+                      control_points[1, :], control_points[-2, :],
+                      control_points[-1, :]]
+    control_points = np.asarray(control_points, dtype=np.float32)
+    control_points = np.tile(np.expand_dims(control_points, 0),
+                             [quat.shape[0], 1, 1])
 
-    # gripper_pc = torch.tensor(control_points).to(quat.device)
-
-    gripper_pc = get_control_point_tensor(quat.shape[0], config_path=config_path).to(quat.device)
-
-    # prepare q and t 
-    quat = quat.unsqueeze(1).repeat([1, gripper_pc.shape[1], 1])
-    trans = trans.unsqueeze(1).repeat([1, gripper_pc.shape[1], 1])
-
-    # rotate and add
-    gripper_pc = quaternion.rot_p_by_quaterion(gripper_pc, quat)
-    gripper_pc +=trans
-
-    return gripper_pc
-
-def transform_gripper_pc_custom(quat, trans, pc_points, repeat=False):
-    # q: [B, 4]
-    # t: [B, 3]
-    # pc_points: [B2, 4]
-
-    if repeat:
-        gripper_pc = pc_points[:, :3].repeat(quat.shape[0], 1, 1) # [B, B2, 3]
-    else:
-        gripper_pc = pc_points
+    gripper_pc = torch.tensor(control_points).to(quat.device)
 
     # prepare q and t 
     quat = quat.unsqueeze(1).repeat([1, gripper_pc.shape[1], 1])
@@ -249,6 +227,7 @@ def normalize_pc_and_translation(pcs, trans):
     - pc_mean: [B,3]
     '''
     pc_mean = pcs.mean(dim=1)
+    print(pc_mean.shape)
     pcs = pcs - pc_mean.unsqueeze(1)
     trans = trans-pc_mean
 
@@ -270,36 +249,6 @@ def denormalize_translation(trans, mean=0, std=1):
 
     return trans
 
-def get_surrogate_grasp_points(grasp_rots, grasp_trans, is_euler=False):
-
-    batch_size = grasp_trans.shape[0]
-
-    surrogate_point = np.array( [[0.0000000e+00,  0.0000000e+00 , 7.5273141e-02+0.03]] ) # furthest one
-    #surrogate_point = np.array( [[0.0000000e+00,  0.0000000e+00 , 7.5273141e-02+0.015]] ) # center
-    #surrogate_point = np.array( [[0.0000000e+00,  0.0000000e+00 , 7.5273141e-02]] ) # closest one
-
-    surrogate_point = np.tile(np.expand_dims(surrogate_point, 0),
-                             [batch_size, 1, 1])
-    surrogate_point = torch.FloatTensor(surrogate_point).to(grasp_trans.device)
-
-    if is_euler:
-        rot = quaternion.euler2matrix(grasp_rots,
-                                  order='XYZ')
-        surrogate_point = torch.matmul(surrogate_point, rot.permute(0, 2, 1))
-        surrogate_point += grasp_trans.unsqueeze(1).expand(-1, surrogate_point.shape[1],
-                                                       -1)
-                                                    
-    else:
-
-        # prepare q and t 
-        quat = grasp_rots.unsqueeze(1).repeat([1, surrogate_point.shape[1], 1])
-        trans = grasp_trans.unsqueeze(1).repeat([1, surrogate_point.shape[1], 1])
-
-        # rotate and add
-        surrogate_point = quaternion.rot_p_by_quaterion(surrogate_point, quat)
-        surrogate_point +=trans
-
-    return surrogate_point
 
 def get_control_point_tensor(batch_size, use_torch=True, config_path = 'configs/panda.npy'):
     """
@@ -321,13 +270,54 @@ def get_control_point_tensor(batch_size, use_torch=True, config_path = 'configs/
     return control_points
 
 def control_points_from_rot_and_trans(grasp_eulers,
-                                      grasp_translations, order='XYZ', config_path='configs/panda.npy'):
-
-    rot = quaternion.euler2matrix(grasp_eulers,
-                                  order=order)
-
+                                      grasp_translations, config_path='configs/panda.npy'):
+    rot = tc_rotation_matrix(grasp_eulers[:, 0],
+                             grasp_eulers[:, 1],
+                             grasp_eulers[:, 2],
+                             batched=True)
     grasp_pc = get_control_point_tensor(grasp_eulers.shape[0], config_path=config_path).to(grasp_eulers.device)
     grasp_pc = torch.matmul(grasp_pc, rot.permute(0, 2, 1))
     grasp_pc += grasp_translations.unsqueeze(1).expand(-1, grasp_pc.shape[1],
                                                        -1)
     return grasp_pc
+
+def tc_rotation_matrix(az, el, th, batched=False):
+    if batched:
+
+        cx = torch.cos(torch.reshape(az, [-1, 1]))
+        cy = torch.cos(torch.reshape(el, [-1, 1]))
+        cz = torch.cos(torch.reshape(th, [-1, 1]))
+        sx = torch.sin(torch.reshape(az, [-1, 1]))
+        sy = torch.sin(torch.reshape(el, [-1, 1]))
+        sz = torch.sin(torch.reshape(th, [-1, 1]))
+
+        ones = torch.ones_like(cx)
+        zeros = torch.zeros_like(cx)
+
+        rx = torch.cat([ones, zeros, zeros, zeros, cx, -sx, zeros, sx, cx],
+                       dim=-1)
+        ry = torch.cat([cy, zeros, sy, zeros, ones, zeros, -sy, zeros, cy],
+                       dim=-1)
+        rz = torch.cat([cz, -sz, zeros, sz, cz, zeros, zeros, zeros, ones],
+                       dim=-1)
+
+        rx = torch.reshape(rx, [-1, 3, 3])
+        ry = torch.reshape(ry, [-1, 3, 3])
+        rz = torch.reshape(rz, [-1, 3, 3])
+
+        return torch.matmul(rz, torch.matmul(ry, rx))
+    else:
+        cx = torch.cos(az)
+        cy = torch.cos(el)
+        cz = torch.cos(th)
+        sx = torch.sin(az)
+        sy = torch.sin(el)
+        sz = torch.sin(th)
+
+        rx = torch.stack([[1., 0., 0.], [0, cx, -sx], [0, sx, cx]], dim=0)
+        ry = torch.stack([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]], dim=0)
+        rz = torch.stack([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]], dim=0)
+
+        return torch.matmul(rz, torch.matmul(ry, rx))
+
+
