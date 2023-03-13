@@ -10,7 +10,11 @@ human handover improved the functional aspect of the grasp by up to 33%.
 <!-- <img src="figs/mainfig-1.png" alt="main" width="600" height="300"> -->
 <img align="center" alt="GraspFlow" src="figs/mainfig-1.png" width="710" height="435" />
 
-This project has a lot of submodules. We recommend to use forked versions of submodules given in this repository. 
+This project has a lot of submodules. We recommend to use forked versions of submodules given in this repository. First, create and activate conda environment and install modules given in environment.yaml:
+
+```
+conda env create -f environment.yml
+```
 
 ## Section 1: Stability Classifier: Dataset and Training
 
