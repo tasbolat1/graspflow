@@ -14,7 +14,7 @@ This project has a lot of submodules. We recommend to use forked versions of sub
 
 ## Section 1: Stability Classifier: Dataset and Training
 
-The core of the dataset generation lies in  Grasper library. The grasper library can be downloaded at:
+The core of the dataset generation lies in the GraspSampler library. The library can be downloaded here: [GraspSampler](https://github.com/patrickeala/GraspSampler).
 
 ```
 TODO Pat
@@ -60,7 +60,7 @@ We mainly follow same installation as in [2]. However, we also extended it to ad
 
 ## Section 3: Grasp Refinement via GraspFlow
 
-### Prerequisits
+### Prerequisites
 1. franka_analytical_ik [3] - solves analytical IK for Panda Robot.
 2. differentiable-robot-model [4] -  differentiable robot model used for E-classifier to calculate FK of the robot.
 
