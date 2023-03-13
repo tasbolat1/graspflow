@@ -75,6 +75,7 @@ and run:
 ```
 python refine_isaac_samples.py --sampler graspnet --eta_trans 0.00001 --eta_rots 0.00000001 --cat <cat> --idx <idx> --max_iterations 50 --device 0 --f KL --method <M_TYPE> --grasp_folder ../experiments/test
 ```
+For list of parameters for the above function, please check settings.txt file.
 
 ## BibTeX
 

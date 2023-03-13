@@ -15,6 +15,7 @@ graspflow/robot_robotiq.pdf
 graspflow/data/
 graspflow/utils/__pycache__/
 graspflow/data.zip
+graspflow/pcs.zip
 
 ### Grasper ###
 grasper/
